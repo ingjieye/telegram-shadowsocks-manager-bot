@@ -1,0 +1,3 @@
+[submodule "xxtelebot"]
+	path = xxtelebot
+	url = https://github.com/StefanoBelli/xxtelebot
