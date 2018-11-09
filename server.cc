@@ -2,12 +2,13 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-
+#include <regex>
+#include <algorithm>
+#include <exception>
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-
 #include "tgbot/bot.h"
 
 using namespace tgbot;
@@ -16,10 +17,7 @@ using namespace methods;
 using namespace std;
 
 int verbose = 1;
-int BUFSIZE = 4096;
-int MAXARG = 256;
 int64_t admin_id = 0;
-
 int manager_port;
 
 typedef struct {
@@ -43,20 +41,18 @@ string SendToManager(string message)
 	return string(buf);
 }
 
-int AddPort(int port, string passwd)
+void AddPort(string port, string passwd)
 {
-	int ret = -1;
-	string msg = "add: {\"server_port\": " + to_string(port) + "\"password\":\"" + passwd + "\"}";
-	if(SendToManager(msg) == "ok") ret = 0;
-	return ret;
+	string msg = "add: {\"server_port\": " + port + "\"password\":\"" + passwd + "\"}";
+	string ret = SendToManager(msg);
+	if(ret != "ok") throw runtime_error(ret);
 }
 
-int RemovePort(int port)
+void DeletePort(string port)
 {
-	int ret = -1;
-	string msg = "remove: {\"server_port\": " + to_string(port) + "}";
-	if(SendToManager(msg) == "ok") ret = 0;
-	return ret;
+	string msg = "remove: {\"server_port\": " + port + "}";
+	string ret = SendToManager(msg);
+	if(ret != "ok") throw runtime_error(ret);
 }
 
 vector<flow> GetFlowData()
@@ -64,26 +60,19 @@ vector<flow> GetFlowData()
 	vector<flow> ret;
 	// stat: {"50001":33024961447,"50002":6140700730,"50003":2057743160,"50004":87410}
 	string raw = SendToManager("ping");
-	if(raw.find("stat: {") != 0) return ret;
+	if(raw.find("stat: {") != 0) throw logic_error("ping response invalid");
 
-	auto left = raw.find("{");
-	auto right = raw.find("}");
-	raw = raw.substr(left + 1, right - left - 1);
-	//"50001":33024961447,"50002":6140700730,"50003":2057743160,"50004":87410
-
-	size_t pos;
-	while( !raw.empty() ) {
-		pos = raw.find(',');
-		if(pos == string::npos) pos = raw.length();
-		string sub = raw.substr(0, pos);
-		// "50001":33024961447
-		auto sub_pos = sub.find(':');
+	regex e_port("\"\\d+\"");
+	regex e_flow(":\\d+");
+	cmatch match_port, match_flow;
+	regex_match(raw.data(), match_port, e_port);
+	regex_match(raw.data(), match_flow, e_flow);
+	if(match_port.size() != match_flow.size()) throw logic_error("ping response invalid");
+	for(int i=0; i<match_port.size(); i++) {
 		flow f;
-		f.port = stoi(sub.substr(1, sub_pos - 2));
-		f.data = stoll(sub.substr(sub_pos + 1));
+		f.port = stoi(match_port[i]);
+		f.data = stoll(match_flow[i]);
 		ret.push_back(f);
-		if(pos == raw.length()) break;
-		raw = raw.substr(pos + 1);
 	}
 	return ret;
 }
@@ -108,28 +97,62 @@ string GetFlowString()
 	return ret;
 }
 
+string HandleCmd(const string& msg)
+{
+	string ret;
+	if(msg.find("/flow") == 0) {
+		ret = GetFlowString();
+	} else if (msg.find("/add") == 0) { // add 50001 eawgfasdf
+		if(count(msg.begin(), msg.end(), ' ') != 2) throw invalid_argument("to add port: /add port password");
+		string pattern("\\/add\\s(\\d+\\b)\\s(\\S+)");
+		regex e(pattern);
+		cmatch cm;
+		if(regex_match(msg.data(), cm, e) == false || cm.size() != 3) throw invalid_argument("regex match failed (" + pattern + ")");
+
+		string port = cm[1];
+		string passwd = cm[2];
+		if(atoi(port.data()) > 65535) throw invalid_argument("port exceed maximum number 65535");
+
+		AddPort(port, passwd);
+		ret = "add port: " + port + ", password: " + passwd;
+	} else if (msg.find("/del") == 0) {
+		if(count(msg.begin(), msg.end(), ' ') != 2) throw invalid_argument("to delete port: /del port password");
+		string pattern("\\/del\\s(\\d+\\b)");
+		regex e(pattern);
+		cmatch cm;
+		if(regex_match(msg.data(), cm, e) == false || cm.size() != 2) throw invalid_argument("regex match failed (" + pattern + ")");
+
+		string port = cm[1];
+		if(atoi(port.data()) > 65535) throw invalid_argument("port exceed maximum number 65535");
+
+		DeletePort(port);
+		ret = "delete port: " + port;
+	} else {
+		throw invalid_argument("Unknow command");
+	}
+	return ret;
+}
+
 void EchoBack(const Message message, const Api& api)
 {
-	if(admin_id == 0) {
-		admin_id = message.from->id;
-	} else if (message.from->id != admin_id) {
-		api.sendMessage(std::to_string(message.chat.id), "Not admin");
-		return;
-	}
-
-	const char* msg = message.text->data();
-	if(verbose) {
-		cout << "RECEIVED : " << msg << "\n";
-	}
-	if(msg[0] == '/') {
-		if(strcmp(msg, "/flow") == 0) {
-			string ret = GetFlowString();
-			cout << "GetFlowString() = " << ret;
-			api.sendMessage(std::to_string(message.chat.id), ret);
-		} else if (strcmp(msg, "ss") == 0) {
-
+	try {
+		if(admin_id == 0) {
+			admin_id = message.from->id;
+		} else if (message.from->id != admin_id) {
+			api.sendMessage(std::to_string(message.chat.id), "Not admin");
+			return;
 		}
-		return;
+
+		string msg = message.text->data();
+		if(verbose) {
+			cout << "RECEIVED : " << msg << "\n";
+		}
+
+		if(msg[0] == '/') {
+			api.sendMessage(std::to_string(message.chat.id), HandleCmd(msg));
+		}
+	} catch(exception& e) {
+		api.sendMessage(std::to_string(message.chat.id), string("ERROR: ") + e.what());
 	}
 }
 
