@@ -6,7 +6,10 @@ A telegram bot to control your Shadowsocks server by communicate with ss-manager
 
 - [x] Get current flow.
 - [x] Add / remove port.
-- [ ] Flow graph
+
+## TODO
+- Flow graph
+- Data Persistence
 
 ## Install
 
@@ -19,7 +22,7 @@ git clone --recurse-submodules https://github.com/ingjieye/telesh
 Install dependencies :
 
 ```bash
-sudo apt install libcurl4-openssl-dev gcrystal libgcrypt20-dev libjsoncpp-dev
+sudo apt install libcurl4-openssl-dev gcrystal libgcrypt20-dev libjsoncpp-dev libsqlite3-dev
 ```
 
 Compile the xxtelebot static lib :
