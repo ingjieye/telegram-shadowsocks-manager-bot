@@ -16,7 +16,7 @@ A telegram bot to control your Shadowsocks server by communicate with ss-manager
 Clone the repository :
 
 ```bash
-git clone --recurse-submodules https://github.com/ingjieye/telesh
+git clone --recurse-submodules https://github.com/ingjieye/telegram-shadowsocks-manager-bot
 ```
 
 Install dependencies :
@@ -28,7 +28,8 @@ sudo apt install libcurl4-openssl-dev g++ make binutils cmake libssl-dev libboos
 Build :
 
 ```bash
-mkdir build && cmake .. && make
+cd telegram-shadowsocks-manager-bot
+mkdir build && cmake .. && make -j7
 ```
 
 ## Usage
