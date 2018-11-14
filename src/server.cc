@@ -9,11 +9,9 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include "tgbot/bot.h"
+#include "tgbot/tgbot.h"
 
-using namespace tgbot;
-using namespace tgbot::types;
-using namespace methods;
+using namespace TgBot;
 using namespace std;
 
 int verbose = 1;
@@ -37,7 +35,8 @@ string SendToManager(string message)
 	socklen_t sin_len = sizeof(sin);
 	char buf[500];
 	sendto(socket_fd, message.data(), message.length(), 0, (struct sockaddr *) &sin, sin_len);
-	recvfrom(socket_fd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sin_len);
+	int lenth = recvfrom(socket_fd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sin_len);
+	buf[lenth] = '\0';
 	return string(buf);
 }
 
@@ -62,17 +61,15 @@ vector<traffic> GetTrafficData()
 	string raw = SendToManager("ping");
 	if(raw.find("stat: {") != 0) throw logic_error("ping response invalid");
 
-	regex e_port("\"\\d+\"");
-	regex e_flow(":\\d+");
-	cmatch match_port, match_flow;
-	regex_match(raw.data(), match_port, e_port);
-	regex_match(raw.data(), match_flow, e_flow);
-	if(match_port.size() != match_flow.size()) throw logic_error("ping response invalid");
-	for(int i=0; i<match_port.size(); i++) {
+	regex e("(\")(\\d+)(\")(:)(\\d+)");
+	smatch match;
+
+	while(regex_search(raw, match, e)) {
 		traffic t;
-		t.port = stoi(match_port[i]);
-		t.data = stoll(match_flow[i]);
+		t.port = stoi(match[2]);
+		t.data = stoll(match[5]);
 		ret.push_back(t);
+		raw = match.suffix();
 	}
 	return ret;
 }
@@ -132,42 +129,40 @@ string HandleCmd(const string& msg)
 	return ret;
 }
 
-void EchoBack(const Message message, const Api& api)
+int main(int argc, char* argv[])
 {
-	try {
-		if(admin_id == 0) {
-			admin_id = message.from->id;
-		} else if (message.from->id != admin_id) {
-			api.sendMessage(std::to_string(message.chat.id), "Not admin");
-			return;
-		}
-
-		string msg = message.text->data();
-		if(verbose) {
-			cout << "RECEIVED : " << msg << "\n";
-		}
-
-		if(msg[0] == '/') {
-			api.sendMessage(std::to_string(message.chat.id), HandleCmd(msg));
-		}
-	} catch(exception& e) {
-		api.sendMessage(std::to_string(message.chat.id), string("ERROR: ") + e.what());
-	}
-}
-
-int main(int argv, char** argc)
-{
-	if(argv != 3) {
-		printf("usage : %s <telegram bot key> <ss-manager port>\n", argc[0]);
+	if(argc != 3) {
+		printf("usage : %s <telegram bot key> <ss-manager port>\n", argv[0]);
 		exit(1);
 	}
 
-	manager_port = atoi(argc[2]);
-	LongPollBot bot(argc[1]);
+	manager_port = atoi(argv[2]);
 
-	bot.callback(EchoBack);
+	Bot bot(argv[1]);
 
-	bot.start();
+    bot.getEvents().onAnyMessage([&bot](Message::Ptr message) {
+        printf("User wrote %s\n", message->text.c_str());
+		try {
+			if(admin_id == 0) {
+				admin_id = message->from->id;
+			} else if (message->from->id != admin_id) {
+				throw invalid_argument("Not admin");
+			}
+
+	        bot.getApi().sendMessage(message->chat->id, HandleCmd(message->text));
+		}catch(exception& e) {
+			bot.getApi().sendMessage(message->chat->id, e.what());
+		}
+    });
+
+	printf("Bot username: %s\n", bot.getApi().getMe()->username.c_str());
+	bot.getApi().deleteWebhook();
+
+	TgLongPoll longPoll(bot);
+	while (true) {
+		printf("Long poll started\n");
+		longPoll.start();
+	}
 	
 	return 0;
 }

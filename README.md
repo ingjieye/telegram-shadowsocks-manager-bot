@@ -36,7 +36,7 @@ mkdir build && cmake .. && make
 Launch server with 
 
 ```
-$ ./server.out <telegram bot key> <ss-manager port>
+$ ./server <telegram bot key> <ss-manager port>
 ```
 
 The first one who sent the message to the bot will be the admin
