@@ -3,7 +3,7 @@ project(telegram-shadowsocks-manager)
 
 set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
 set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
-# set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_LIBS ON)
 
 add_subdirectory(SQLiteCpp)
 add_subdirectory(tgbot-cpp)

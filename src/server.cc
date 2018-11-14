@@ -5,6 +5,7 @@
 #include <regex>
 #include <algorithm>
 #include <exception>
+#include <cstdlib>
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
@@ -25,6 +26,9 @@ typedef struct {
 
 string SendToManager(string message)
 {
+	if(verbose) {
+		cout << "SendToManager: " << message << endl;
+	}
 	int socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	struct sockaddr_in sin;
 	memset(&sin, 0, sizeof(sin));
@@ -42,7 +46,7 @@ string SendToManager(string message)
 
 void AddPort(string port, string passwd)
 {
-	string msg = "add: {\"server_port\": " + port + "\"password\":\"" + passwd + "\"}";
+	string msg = "add: {\"server_port\": " + port + ", \"password\":\"" + passwd + "\"}";
 	string ret = SendToManager(msg);
 	if(ret != "ok") throw runtime_error(ret);
 }
@@ -79,6 +83,7 @@ string GetTrafficString()
 	const vector<string> data_unit = {"B", "KB", "MB", "GB", "TB", "PB"};
 	string ret;
 	auto v = GetTrafficData();
+	char buf[16];
 	for(auto& a: v) {
 		ret += to_string(a.port) + ": ";
 		int time = 0;
@@ -87,7 +92,8 @@ string GetTrafficString()
 			traffic /= 1024;
 			time ++;
 		}
-		ret += to_string(traffic);
+		snprintf(buf, 16, "%.2lf", traffic);
+		ret += buf;
 		ret += data_unit[time] + "\n";
 	}
 	return ret;
@@ -112,7 +118,7 @@ string HandleCmd(const string& msg)
 		AddPort(port, passwd);
 		ret = "add port: " + port + ", password: " + passwd;
 	} else if (msg.find("/del") == 0) {
-		if(count(msg.begin(), msg.end(), ' ') != 2) throw invalid_argument("to delete port: /del port password");
+		if(count(msg.begin(), msg.end(), ' ') != 1) throw invalid_argument("to delete port: /del port");
 		string pattern("\\/del\\s(\\d+\\b)");
 		regex e(pattern);
 		cmatch cm;
