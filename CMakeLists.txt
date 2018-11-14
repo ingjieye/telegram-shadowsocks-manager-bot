@@ -17,15 +17,12 @@ if (CURL_FOUND)
     add_definitions(-DHAVE_CURL)
 endif()
 
-
 set(SOURCE_FILES src/server.cc)
 
 add_executable(server ${SOURCE_FILES})
 add_executable(database src/database.cc)
-add_executable(test_sqlite test/test_sqlite.cpp)
 add_executable(echobot src/echobot.cc)
 
 target_link_libraries(server xxtelebot)
 target_link_libraries(database SQLiteCpp sqlite3 pthread dl)
-target_link_libraries(test_sqlite SQLiteCpp sqlite3 pthread dl)
 target_link_libraries(echobot TgBot ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${CURL_LIBRARIES})
