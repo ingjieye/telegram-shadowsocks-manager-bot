@@ -1,3 +1,9 @@
 [submodule "xxtelebot"]
 	path = xxtelebot
 	url = https://github.com/StefanoBelli/xxtelebot
+[submodule "SQLiteCpp"]
+	path = SQLiteCpp
+	url = https://github.com/SRombauts/SQLiteCpp
+[submodule "tgbot-cpp"]
+	path = tgbot-cpp
+	url = https://github.com/reo7sp/tgbot-cpp

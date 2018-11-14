@@ -23,7 +23,7 @@ int manager_port;
 typedef struct {
 	int port;
 	uint64_t data;
-} flow;
+} traffic;
 
 string SendToManager(string message)
 {
@@ -55,9 +55,9 @@ void DeletePort(string port)
 	if(ret != "ok") throw runtime_error(ret);
 }
 
-vector<flow> GetFlowData()
+vector<traffic> GetTrafficData()
 {
-	vector<flow> ret;
+	vector<traffic> ret;
 	// stat: {"50001":33024961447,"50002":6140700730,"50003":2057743160,"50004":87410}
 	string raw = SendToManager("ping");
 	if(raw.find("stat: {") != 0) throw logic_error("ping response invalid");
@@ -69,29 +69,28 @@ vector<flow> GetFlowData()
 	regex_match(raw.data(), match_flow, e_flow);
 	if(match_port.size() != match_flow.size()) throw logic_error("ping response invalid");
 	for(int i=0; i<match_port.size(); i++) {
-		flow f;
-		f.port = stoi(match_port[i]);
-		f.data = stoll(match_flow[i]);
-		ret.push_back(f);
+		traffic t;
+		t.port = stoi(match_port[i]);
+		t.data = stoll(match_flow[i]);
+		ret.push_back(t);
 	}
 	return ret;
 }
 
-vector<string> data_unit = {"B", "KB", "MB", "GB", "TB", "PB"};
-
-string GetFlowString()
+string GetTrafficString()
 {
+	const vector<string> data_unit = {"B", "KB", "MB", "GB", "TB", "PB"};
 	string ret;
-	auto v = GetFlowData();
+	auto v = GetTrafficData();
 	for(auto& a: v) {
 		ret += to_string(a.port) + ": ";
 		int time = 0;
-		double flow = a.data;
-		while(flow > 1024) {
-			flow /= 1024;
+		double traffic = a.data;
+		while(traffic > 1024) {
+			traffic /= 1024;
 			time ++;
 		}
-		ret += to_string(flow);
+		ret += to_string(traffic);
 		ret += data_unit[time] + "\n";
 	}
 	return ret;
@@ -100,8 +99,8 @@ string GetFlowString()
 string HandleCmd(const string& msg)
 {
 	string ret;
-	if(msg.find("/flow") == 0) {
-		ret = GetFlowString();
+	if(msg.find("/traffic") == 0) {
+		ret = GetTrafficString();
 	} else if (msg.find("/add") == 0) { // add 50001 eawgfasdf
 		if(count(msg.begin(), msg.end(), ' ') != 2) throw invalid_argument("to add port: /add port password");
 		string pattern("\\/add\\s(\\d+\\b)\\s(\\S+)");
