@@ -5,8 +5,8 @@ set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
 set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
 set(Boost_USE_STATIC_LIBS ON)
 
-add_subdirectory(SQLiteCpp)
-add_subdirectory(tgbot-cpp)
+add_subdirectory(lib/SQLiteCpp)
+add_subdirectory(lib/tgbot-cpp)
 
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)

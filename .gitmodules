@@ -1,6 +1,6 @@
 [submodule "SQLiteCpp"]
-	path = SQLiteCpp
+	path = lib/SQLiteCpp
 	url = https://github.com/SRombauts/SQLiteCpp
 [submodule "tgbot-cpp"]
-	path = tgbot-cpp
+	path = lib/tgbot-cpp
 	url = https://github.com/reo7sp/tgbot-cpp
