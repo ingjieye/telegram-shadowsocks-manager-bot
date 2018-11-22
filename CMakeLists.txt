@@ -1,26 +1,15 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(telegram-shadowsocks-manager)
 
-set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
-set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
 set(Boost_USE_STATIC_LIBS ON)
 
 add_subdirectory(lib/SQLiteCpp)
 add_subdirectory(lib/tgbot-cpp)
 
-find_package(Threads REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(Boost COMPONENTS system REQUIRED)
-find_package(CURL)
-if (CURL_FOUND)
-    include_directories(${CURL_INCLUDE_DIRS})
-    add_definitions(-DHAVE_CURL)
-endif()
-
-set(SOURCE_FILES src/server.cc)
+set(SOURCE_FILES src/server.cc src/database.cc)
 
 add_executable(server ${SOURCE_FILES})
-add_executable(database src/database.cc)
+add_executable(test_database src/test_database.cc src/database.cc)
 
-target_link_libraries(server TgBot ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${CURL_LIBRARIES})
-target_link_libraries(database SQLiteCpp sqlite3 pthread dl)
+target_link_libraries(server TgBot SQLiteCpp sqlite3 pthread dl)
+target_link_libraries(test_database SQLiteCpp sqlite3 pthread dl)

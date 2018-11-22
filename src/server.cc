@@ -1,23 +1,19 @@
 #include <string>
 #include <iostream>
-#include <thread>
 #include <vector>
 #include <regex>
 #include <algorithm>
 #include <exception>
-#include <cstdlib>
-#include <unistd.h>
-#include <errno.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
+#include <thread>
 #include "tgbot/tgbot.h"
+#include "database.h"
 
-using namespace TgBot;
 using namespace std;
 
 int verbose = 1;
 int64_t admin_id = 0;
 int manager_port;
+Database db("telegram-shadowsocks-manager-bot.sqlite");
 
 typedef struct {
 	int port;
@@ -44,15 +40,17 @@ string SendToManager(string message)
 	return string(buf);
 }
 
-void AddPort(string port, string passwd)
+void AddPort(string port, string password)
 {
-	string msg = "add: {\"server_port\": " + port + ", \"password\":\"" + passwd + "\"}";
+	db.AddPort(port, password);
+	string msg = "add: {\"server_port\": " + port + ", \"password\":\"" + password + "\"}";
 	string ret = SendToManager(msg);
 	if(ret != "ok") throw runtime_error(ret);
 }
 
 void DeletePort(string port)
 {
+	db.DeletePort(port);
 	string msg = "remove: {\"server_port\": " + port + "}";
 	string ret = SendToManager(msg);
 	if(ret != "ok") throw runtime_error(ret);
@@ -135,6 +133,14 @@ string HandleCmd(const string& msg)
 	return ret;
 }
 
+void guard()
+{
+	for(;;) {
+		sleep(5);
+		
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	if(argc != 3) {
@@ -144,9 +150,11 @@ int main(int argc, char* argv[])
 
 	manager_port = atoi(argv[2]);
 
-	Bot bot(argv[1]);
+	TgBot::Bot bot(argv[1]);
 
-    bot.getEvents().onAnyMessage([&bot](Message::Ptr message) {
+	thread t1(guard);
+
+    bot.getEvents().onAnyMessage([&bot](TgBot::Message::Ptr message) {
         printf("User wrote %s\n", message->text.c_str());
 		try {
 			if(admin_id == 0) {
@@ -164,7 +172,7 @@ int main(int argc, char* argv[])
 	printf("Bot username: %s\n", bot.getApi().getMe()->username.c_str());
 	bot.getApi().deleteWebhook();
 
-	TgLongPoll longPoll(bot);
+	TgBot::TgLongPoll longPoll(bot);
 	while (true) {
 		printf("Long poll started\n");
 		longPoll.start();
