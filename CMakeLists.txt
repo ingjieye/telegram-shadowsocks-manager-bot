@@ -6,10 +6,12 @@ set(Boost_USE_STATIC_LIBS ON)
 add_subdirectory(lib/SQLiteCpp)
 add_subdirectory(lib/tgbot-cpp)
 
-set(SOURCE_FILES src/server.cc src/database.cc)
+set(SOURCE_FILES src/server.cc src/database.cc src/manager.cc)
 
 add_executable(server ${SOURCE_FILES})
 add_executable(test_database src/test_database.cc src/database.cc)
+
+# set(CMAKE_EXE_LINKER_FLAGS " -static")
 
 target_link_libraries(server TgBot SQLiteCpp sqlite3 pthread dl)
 target_link_libraries(test_database SQLiteCpp sqlite3 pthread dl)

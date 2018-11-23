@@ -2,8 +2,6 @@
 #include <vector>
 #include <memory>
 
-class DatabaseImpl;
-
 class Database
 {
   public:
@@ -20,5 +18,6 @@ class Database
     void GetPort(std::vector<std::string>& port, std::vector<std::string>& password);
 
   private:
+    class DatabaseImpl;
     std::shared_ptr<DatabaseImpl> pImpl;
 };

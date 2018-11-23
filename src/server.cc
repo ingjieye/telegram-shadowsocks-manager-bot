@@ -26,14 +26,14 @@ int main(int argc, char* argv[])
 		printf("usage : %s <telegram bot key> <ss-manager port>\n", argv[0]);
 		exit(1);
 	}
-
-	manager_port = atoi(argv[2]);
+	
+	Manager ssmanager(atoi(argv[2]));
 
 	TgBot::Bot bot(argv[1]);
 
 	thread t1(guard);
 
-    bot.getEvents().onAnyMessage([&bot](TgBot::Message::Ptr message) {
+    bot.getEvents().onAnyMessage([&bot, &ssmanager](TgBot::Message::Ptr message) {
         printf("User wrote %s\n", message->text.c_str());
 		try {
 			if(admin_id == 0) {
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 				throw invalid_argument("Not admin");
 			}
 
-	        bot.getApi().sendMessage(message->chat->id, HandleCmd(message->text));
+	        bot.getApi().sendMessage(message->chat->id, ssmanager.HandleCmd(message->text));
 		}catch(exception& e) {
 			bot.getApi().sendMessage(message->chat->id, e.what());
 		}
