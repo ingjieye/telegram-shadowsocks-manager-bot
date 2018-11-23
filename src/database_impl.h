@@ -1,13 +1,10 @@
 #include <string>
 #include <vector>
-#include <memory>
+#include "SQLiteCpp/SQLiteCpp.h"
 
-class DatabaseImpl;
-
-class Database
-{
+class DatabaseImpl {
   public:
-    Database(const std::string& name);
+    DatabaseImpl(const std::string& name);
 
     void AddTraffic(const std::string& port, const std::string& traffic);
 
@@ -20,5 +17,5 @@ class Database
     void GetPort(std::vector<std::string>& port, std::vector<std::string>& password);
 
   private:
-    std::shared_ptr<DatabaseImpl> pImpl;
+    SQLite::Database db_;
 };
